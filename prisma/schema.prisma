@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  name         String
+  description  String
+  websiteUrl   String?
+  logoUrl      String?
+  country      String?
+  foundedYear  Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  models       Model[]
+
+  @@map("companies")
+}
+
+model Provider {
+  id               String                  @id @default(cuid())
+  slug             String                  @unique
+  name             String
+  description      String
+  websiteUrl       String?
+  logoUrl          String?
+  apiDocsUrl       String?
+  status           String                  @default("Operational")
+  avgLatencyMs     Float                   @default(300)
+  avgThroughputTps Float                   @default(75)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  offerings        ModelProviderOffering[]
+
+  @@map("providers")
+}
+
+model Model {
+  id                     String                  @id @default(cuid())
+  slug                   String                  @unique
+  name                   String
+  description            String
+  companyId              String
+  company                Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  modelType              String                  @default("Chat/Completion") // Chat/Completion, Reasoning, Multimodal, Code, Embedding
+  architecture           String                  @default("Dense Transformer")
+  parameterCountBillion  Float?
+  contextWindow          Int                     @default(128000)
+  maxOutputTokens        Int                     @default(4096)
+  inputPricePerMillion   Float                   @default(0) // Standardized USD per 1M tokens
+  outputPricePerMillion  Float                   @default(0)
+  cacheReadPricePerMillion Float?                @default(0)
+  modalities             String                  @default("text") // comma-separated: text,image,audio,video,code
+  capabilities           String                  @default("chat,json") // comma-separated: function-calling,json,reasoning,vision
+  license                String                  @default("Proprietary")
+  releaseDate            DateTime                @default(now())
+  isFeatured             Boolean                 @default(false)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  offerings              ModelProviderOffering[]
+  benchmarkScores        ModelBenchmarkScore[]
+
+  @@index([companyId])
+  @@index([modelType])
+  @@index([inputPricePerMillion])
+  @@index([contextWindow])
+  @@index([releaseDate])
+  @@map("models")
+}
+
+model ModelProviderOffering {
+  id                       String   @id @default(cuid())
+  modelId                  String
+  model                    Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  providerId               String
+  provider                 Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  providerModelId          String   // e.g. "anthropic/claude-3.5-sonnet"
+  inputPricePerMillion     Float
+  outputPricePerMillion    Float
+  cacheReadPricePerMillion Float?   @default(0)
+  latencyP50Ms             Float    @default(250)
+  latencyP99Ms             Float    @default(600)
+  throughputTps            Float    @default(80)
+  uptimePercentage         Float    @default(99.9)
+  isAvailable              Boolean  @default(true)
+  lastCheckedAt            DateTime @default(now())
+
+  @@unique([modelId, providerId])
+  @@index([modelId])
+  @@index([providerId])
+  @@index([inputPricePerMillion])
+  @@map("model_provider_offerings")
+}
+
+model Benchmark {
+  id          String                @id @default(cuid())
+  code        String                @unique // MMLU, GSM8K, HUMANEVAL, SWE_BENCH, ARENA_ELO, GPQA
+  name        String
+  category    String                // General, Reasoning, Coding, Agentic, Multimodal
+  description String
+  metric      String                // %, Elo, Pass@1
+  maxValue    Float                 @default(100)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  scores      ModelBenchmarkScore[]
+
+  @@map("benchmarks")
+}
+
+model ModelBenchmarkScore {
+  id              String    @id @default(cuid())
+  modelId         String
+  model           Model     @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  benchmarkId     String
+  benchmark       Benchmark @relation(fields: [benchmarkId], references: [id], onDelete: Cascade)
+  score           Float
+  normalizedScore Float     @default(0) // 0-100 scale for comparison
+  verified        Boolean   @default(true)
+  sourceUrl       String?
+  testedAt        DateTime  @default(now())
+
+  @@unique([modelId, benchmarkId])
+  @@index([modelId])
+  @@index([benchmarkId])
+  @@map("model_benchmark_scores")
+}
+
+model IngestionLog {
+  id               String   @id @default(cuid())
+  source           String
+  status           String   @default("SUCCESS") // SUCCESS, FAILED, RUNNING
+  recordsProcessed Int      @default(0)
+  recordsUpdated   Int      @default(0)
+  details          String?
+  startedAt        DateTime @default(now())
+  completedAt      DateTime @default(now())
+
+  @@map("ingestion_logs")
+}
