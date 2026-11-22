@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { NextRequest } from "next/server";
 import { DataStore } from "@/lib/data-store";
 import { CostCalculationSchema } from "@/lib/validations/api-schemas";

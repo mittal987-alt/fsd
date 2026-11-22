@@ -73,10 +73,8 @@ export default async function HomePage() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="px-3 py-1.5 rounded-md text-sm transition-colors"
+                    className="px-3 py-1.5 rounded-md text-sm transition-colors hover:text-white"
                     style={{ color: "var(--text-secondary)" }}
-                    onMouseOver={(e) => { (e.target as HTMLElement).style.color = "var(--text-primary)"; }}
-                    onMouseOut={(e) => { (e.target as HTMLElement).style.color = "var(--text-secondary)"; }}
                   >
                     {item.label}
                   </Link>

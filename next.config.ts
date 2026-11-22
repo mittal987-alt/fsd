@@ -1,14 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  cacheComponents: true,
-  partialPrefetching: true,
-  // Webpack config for production build (turbopack is dev-only)
-  webpack: (config) => {
-    config.resolve.alias = {
-      ...config.resolve.alias,
-    };
-    return config;
+  // Using turbopack for dev with CSS support; build uses --webpack flag
+  turbopack: {
+    rules: {
+      "*.css": {
+        loaders: ["@tailwindcss/turbopack"],
+        as: "*.css",
+      },
+    },
   },
 };
 
